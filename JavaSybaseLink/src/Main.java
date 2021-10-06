@@ -1,4 +1,3 @@
-
 /*
  * The idea is to recive json messages in containing
  * { "msgId" : 1, "sql" : "select * from blar"}   on standard in.
@@ -9,56 +8,79 @@
 
 public class Main implements SQLRequestListener {
 
-	String host;
-	Integer port;
-	String dbname;
-	String username;
-	String password;
-	SybaseDB db;
-	StdInputReader input;
+  String host;
+  Integer port;
+  String dbname;
+  String username;
+  String password;
+  String charset;
+  String timezone;
+  SybaseDB db;
+  StdInputReader input;
 
-    public static void main(String[] args) {
-
-		Main m;
-		String pw = "";
-		if (args.length != 5 && args.length != 4)
-		{
-			System.err.println("Expecting the arguments: host, port, dbname, username, password");
-			System.exit(1);
-		}
-		if (args.length == 5)
-			pw = args[4];
-
-		m = new Main(args[0], Integer.parseInt(args[1]), args[2], args[3], pw);
+  public static void main(String[] args) {
+    if (args.length != 7) {
+      System.err.println(
+        "Expecting the arguments: host, port, dbname, username, password, charset, timezone"
+      );
+      System.exit(1);
     }
 
-	public Main(String host, Integer port, String dbname, String username, String password) {
-		this.host = host;
-		this.port = port;
-		this.dbname = dbname;
-		this.username = username;
-		this.password = password;
+    Main m =
+      new Main(
+        args[0],
+        Integer.parseInt(args[1]),
+        args[2],
+        args[3],
+        args[4],
+        args[5],
+        args[6]
+      );
+  }
 
-		input = new StdInputReader();
-		input.addListener(this);
+  public Main(
+    String host,
+    Integer port,
+    String dbname,
+    String username,
+    String password,
+    String charset,
+    String timezone
+  ) {
+    this.host = host;
+    this.port = port;
+    this.dbname = dbname;
+    this.username = username;
+    this.password = password;
+    this.charset = charset;
+    this.timezone = timezone;
 
-		MyProperties props = new MyProperties("sybaseConfig.properties");
-		db = new SybaseDB(host, port, dbname, username, password, props.properties);
-		if (!db.connect())
-			System.exit(1);
+    input = new StdInputReader();
+    input.addListener(this);
 
-		// send the connected message.
-		System.out.println("connected");
+    MyProperties props = new MyProperties("sybaseConfig.properties");
+    db =
+      new SybaseDB(
+        host,
+        port,
+        dbname,
+        username,
+        password,
+        charset,
+        timezone,
+        props.properties
+      );
+    if (!db.connect()) System.exit(1);
 
-		// blocking call don't do anything under here.
-		input.startReadLoop();
-	}
+    // send the connected message.
+    System.out.println("connected");
 
-	public void sqlRequest(SQLRequest request)
-	{
-		db.execSQL(request);
-		//System.out.println(result);
-	}
+    // blocking call don't do anything under here.
+    input.startReadLoop();
+  }
 
-
+  public void sqlRequest(SQLRequest request) {
+    db.execSQL(request);
+    //System.out.println(result);
+  }
 }

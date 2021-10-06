@@ -1,1 +1,4 @@
+.*
+JavaSybaseLink/build
+JavaSybaseLink/dist/javadoc
 node_modules

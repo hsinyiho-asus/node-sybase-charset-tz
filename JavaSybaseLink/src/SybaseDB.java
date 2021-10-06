@@ -1,7 +1,6 @@
-
+import com.sybase.jdbc4.jdbc.SybDriver;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import com.sybase.jdbc3.jdbc.SybDriver;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.text.DateFormat;
@@ -12,63 +11,93 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-
 /**
  *
  * @author rod
  */
 public class SybaseDB {
 
-	public static final int TYPE_TIME_STAMP = 93;
-	public static final int TYPE_DATE = 91;
+  public static final int TYPE_TIME_STAMP = 93;
+  public static final int TYPE_DATE = 91;
 
-	public static final int NUMBER_OF_THREADS = 5;
+  public static final int NUMBER_OF_THREADS = 5;
 
-	String host;
-	Integer port;
-	String dbname;
-	String username;
-	String password;
-	Properties props;
-	Connection conn;
-	DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S'Z'");
-	ExecutorService executor = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
+  String host;
+  Integer port;
+  String dbname;
+  String username;
+  String password;
+  String charset;
+  String timezone;
+  Properties props;
+  Connection conn;
+  DateFormat df;
+  ExecutorService executor = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
-	public SybaseDB(String host, Integer port, String dbname, String username, String password)
-	{
-		this(host, port, dbname, username, password, new Properties());
-	}
-	public SybaseDB(String host, Integer port, String dbname, String username, String password, Properties props)
-	{
-		this.host = host;
-		this.port = port;
-		this.dbname = dbname;
-		this.username = username;
-		this.password = password;
-		this.props = props;
-		this.props.put("user", username);
-		this.props.put("password", password);		
-		df.setTimeZone(TimeZone.getTimeZone("UTC"));
-	}
+  public SybaseDB(
+    String host,
+    Integer port,
+    String dbname,
+    String username,
+    String password,
+    String charset,
+    String timezone
+  ) {
+    this(host, port, dbname, username, password, charset, timezone, new Properties());
+  }
 
-	public boolean connect()
-	{
-		try {
-			SybDriver sybDriver = (SybDriver) Class.forName("com.sybase.jdbc3.jdbc.SybDriver").newInstance();
-			conn = DriverManager.getConnection("jdbc:sybase:Tds:" + host + ":" + port + "/" + dbname, props);
-			return true;
+  public SybaseDB(
+    String host,
+    Integer port,
+    String dbname,
+    String username,
+    String password,
+    String charset,
+    String timezone,
+    Properties props
+  ) {
+    this.host = host;
+    this.port = port;
+    this.dbname = dbname;
+    this.username = username;
+    this.password = password;
+    this.charset = charset;
+    this.timezone = timezone;
+    this.props = props;
+    this.props.put("USER", username);
+    this.props.put("PASSWORD", password);
+    this.props.put("CHARSET", charset);
+    if (charset != "UTF8") {
+      this.props.put("SQLINITSTRING", "set char_convert off");
+    }
+    if (timezone.isEmpty()) {
+      df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    } else {
+      df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+      df.setTimeZone(TimeZone.getTimeZone(timezone));
+    }
+  }
 
-		} catch (Exception ex) {
-			System.err.println(ex);
-			System.err.println(ex.getMessage());
-			return false;
-		}
-	}
+  public boolean connect() {
+    try {
+      SybDriver sybDriver = (SybDriver) Class
+        .forName("com.sybase.jdbc4.jdbc.SybDriver")
+        .newInstance();
+      conn =
+        DriverManager.getConnection(
+          "jdbc:sybase:Tds:" + host + ":" + port + "/" + dbname,
+          props
+        );
+      return true;
+    } catch (Exception ex) {
+      System.err.println(ex);
+      System.err.println(ex.getMessage());
+      return false;
+    }
+  }
 
-	public void execSQL(SQLRequest request)
-	{
-		Future f = executor.submit(new ExecSQLCallable(conn, df, request));
-		// prints to system.out its self.
-	}
-
+  public void execSQL(SQLRequest request) {
+    Future f = executor.submit(new ExecSQLCallable(conn, df, request));
+    // prints to system.out its self.
+  }
 }
