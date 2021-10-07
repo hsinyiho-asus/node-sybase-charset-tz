@@ -1,6 +1,6 @@
 {
   "name": "sybase-charset-tz",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Added charset and timezone parameter to node-sybase. Original node-sybase: A simple node.js wrapper around a java/jconnect app that provides easy access to Sybase Databases without having to install odbc or freetds.",
   "dependencies": {
     "JSONStream": "latest",
