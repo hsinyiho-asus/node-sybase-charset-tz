@@ -18,7 +18,7 @@ function Sybase(host, port, dbname, username, password, charset, timezone, logTi
 
     this.pathToJavaBridge = pathToJavaBridge;
     if (this.pathToJavaBridge === undefined) {
-        this.pathToJavaBridge = path.resolve(__dirname, "JavaSybaseLink.jar");
+        this.pathToJavaBridge = path.resolve(__dirname, "..", "JavaSybaseLink", "dist", "JavaSybaseLink.jar");
     }
 
     this.queryCount = 0;
