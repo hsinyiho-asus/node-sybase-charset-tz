@@ -39,7 +39,7 @@ quick example
 - timezone: Please refer to [[Wiki](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)] for supported TZ database name, empty string means no timezone information in datetime string format
 
 ```javascript
-var Sybase = require('sybase'),
+var Sybase = require('sybase-charset-tz'),
 	db = new Sybase('host', port, 'dbName', 'username', 'password', 'charset', 'timezone');
 
 db.connect(function (err) {
