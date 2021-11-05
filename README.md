@@ -2,7 +2,7 @@ node-sybase-charset-tz
 ---------
 
 This is the revised vesion of node-sybase with some changes:
-- update to jconn4.jar come from jConnect-16_0
+- changed to JTDS JDBC driver
 - add charset parameter to support non-unicode database. The original can set it in properties file but it affect all instance, pass charset as create parameter can have different value for each instance
 - add timezone parameter, also each instance can have different value
 
@@ -35,7 +35,7 @@ npm install sybase
 quick example
 -------------
 
-- charset: Please refer to [[Sybase webpage](https://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc39001.0707/html/prjdbc0707/prjdbc070731.htm)] for supported charset
+- charset: Please refer to [[Sybase webpage](https://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc39001.0707/html/prjdbc0707/prjdbc070731.htm)] for supported charset. Please use the value in "JDK byte converter" column
 - timezone: Please refer to [[Wiki](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)] for supported TZ database name, empty string means no timezone information in datetime string format
 
 ```javascript

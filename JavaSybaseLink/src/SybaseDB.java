@@ -1,4 +1,4 @@
-import com.sybase.jdbc4.jdbc.SybDriver;
+import net.sourceforge.jtds.jdbc.Driver;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -66,10 +66,6 @@ public class SybaseDB {
     this.props = props;
     this.props.put("USER", username);
     this.props.put("PASSWORD", password);
-    this.props.put("CHARSET", charset);
-    if (charset != "UTF8") {
-      this.props.put("SQLINITSTRING", "set char_convert off");
-    }
     if (timezone.isEmpty()) {
       df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     } else {
@@ -80,12 +76,12 @@ public class SybaseDB {
 
   public boolean connect() {
     try {
-      SybDriver sybDriver = (SybDriver) Class
-        .forName("com.sybase.jdbc4.jdbc.SybDriver")
+      Class
+        .forName("net.sourceforge.jtds.jdbc.Driver")
         .newInstance();
       conn =
         DriverManager.getConnection(
-          "jdbc:sybase:Tds:" + host + ":" + port + "/" + dbname,
+          "jdbc:jtds:sybase://" + host + ":" + port + "/" + dbname + ";charset=" + charset,
           props
         );
       return true;
