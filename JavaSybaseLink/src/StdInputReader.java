@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,66 +12,66 @@ import net.minidev.json.JSONValue;
  */
 public class StdInputReader {
 
-	private List<SQLRequestListener> listeners = new ArrayList<SQLRequestListener>();
-	private BufferedReader inputBuffer = new BufferedReader(new InputStreamReader(System.in));
+  private List<SQLRequestListener> listeners = new ArrayList<SQLRequestListener>();
+  private BufferedReader inputBuffer = new BufferedReader(
+    new InputStreamReader(System.in)
+  );
 
-	public StdInputReader() {
+  public StdInputReader() {}
 
-	}
+  public void startReadLoop() {
+    String nextLine;
+    try {
+      while ((nextLine = inputBuffer.readLine()) != null) {
+        nextLine = nextLine.replaceAll("\\n", "\n");
+        sendEvent(nextLine);
+      }
+    } catch (IOException ex) {
+      System.err.println("IO exception: " + ex);
+    }
+  }
 
-	public void startReadLoop()
-	{
-		String nextLine;
-		try {
-			while ((nextLine = inputBuffer.readLine()) != null) {
-				nextLine = nextLine.replaceAll("\\n", "\n");
-				sendEvent(nextLine);
-			}
-		} catch (IOException ex) {
-			System.err.println("IO exception: " + ex);
-		}
-	}
+  private void sendEvent(String sqlRequest) {
+    long startTime = System.currentTimeMillis();
+    try {
+      JSONObject val = (JSONObject) JSONValue.parse(sqlRequest);
+      String type = (String) val.get("type");
+      if (type.equals("connect")) {
+        ConnectRequest request = new ConnectRequest();
+        request.msgId = (int) val.get("msgId");
+        request.host = (String) val.get("host");
+        request.port = Integer.parseInt((String) val.get("port"));
+        request.dbname = (String) val.get("dbname");
+        request.username = (String) val.get("username");
+        request.password = (String) val.get("password");
+        request.charset = (String) val.get("charset");
+        request.timezone = (String) val.get("timezone");
+        request.javaStartTime = startTime;
+        for (SQLRequestListener l : listeners) l.connect(request);
+      } else if (type.equals("close")) {
+        for (SQLRequestListener l : listeners) l.close((int) val.get("msgId"));
+      } else {
+        SQLRequest request = new SQLRequest();
+        request.msgId = (int) val.get("msgId");
+        request.sql = (String) val.get("sql");
+        request.javaStartTime = startTime;
+        for (SQLRequestListener l : listeners) l.sqlRequest(request);
+      }
+    } catch (Exception e) {
+      System.err.println(e);
+      e.printStackTrace(System.err);
+      System.err.println("Error parsing json not a valid SQLRequest object.");
+    }
+  }
 
-	private void sendEvent(String sqlRequest)
-	{
-		long startTime = System.currentTimeMillis();
-		SQLRequest request;
-		try {
-			JSONObject val = (JSONObject) JSONValue.parse(sqlRequest);
-			request = new SQLRequest();
-			request.msgId = (Integer)val.get("msgId");
-			request.sql = (String)val.get("sql");
-			request.javaStartTime = startTime;
-		} catch (Exception e)
-		{
-			request = null;
-		}
-		if (request == null || request.sql == null)
-		{
-			System.err.println("Error parsing json not a valid SQLRequest object. " + sqlRequest);
-			return;
-		}
+  public boolean addListener(SQLRequestListener l) {
+    if (listeners.contains(l)) return false;
 
-		for (SQLRequestListener l : listeners)
-			l.sqlRequest(request);
-	}
+    listeners.add(l);
+    return true;
+  }
 
-	public boolean addListener(SQLRequestListener l)
-	{
-		if (listeners.contains(l))
-			return false;
-
-		listeners.add(l);
-		return true;
-	}
-
-	public boolean removeListener(SQLRequestListener l)
-	{
-		return listeners.remove(l);
-	}
-
-
-
-
-
+  public boolean removeListener(SQLRequestListener l) {
+    return listeners.remove(l);
+  }
 }

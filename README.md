@@ -40,18 +40,29 @@ quick example
 
 ```javascript
 var Sybase = require('sybase-charset-tz'),
-	db = new Sybase('host', port, 'dbName', 'username', 'password', 'charset', 'timezone');
+	db = new Sybase();
 
-db.connect(function (err) {
+db.connect(
+  'host',
+  'port',
+  'dbName',
+  'username',
+  'password',
+  'charset',
+  'timezone',
+  function (err) {
   if (err) return console.log(err);
-  
+
+  console.log("Connected.");
+
   db.query('select * from user where user_id = 42', function (err, data) {
     if (err) console.log(err);
     
     console.log(data);
 
-    db.disconnect();
-
+    db.close(function () {
+      console.log("Connection closed.");
+    });
   });
 });
 ```

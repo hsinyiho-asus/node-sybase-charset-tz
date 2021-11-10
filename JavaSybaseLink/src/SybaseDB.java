@@ -1,4 +1,3 @@
-import net.sourceforge.jtds.jdbc.Driver;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -10,6 +9,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import net.sourceforge.jtds.jdbc.Driver;
 
 /**
  *
@@ -43,7 +43,16 @@ public class SybaseDB {
     String charset,
     String timezone
   ) {
-    this(host, port, dbname, username, password, charset, timezone, new Properties());
+    this(
+      host,
+      port,
+      dbname,
+      username,
+      password,
+      charset,
+      timezone,
+      new Properties()
+    );
   }
 
   public SybaseDB(
@@ -76,12 +85,17 @@ public class SybaseDB {
 
   public boolean connect() {
     try {
-      Class
-        .forName("net.sourceforge.jtds.jdbc.Driver")
-        .newInstance();
+      Class.forName("net.sourceforge.jtds.jdbc.Driver").newInstance();
       conn =
         DriverManager.getConnection(
-          "jdbc:jtds:sybase://" + host + ":" + port + "/" + dbname + ";charset=" + charset,
+          "jdbc:jtds:sybase://" +
+          host +
+          ":" +
+          port +
+          "/" +
+          dbname +
+          ";charset=" +
+          charset,
           props
         );
       return true;
@@ -95,5 +109,16 @@ public class SybaseDB {
   public void execSQL(SQLRequest request) {
     Future f = executor.submit(new ExecSQLCallable(conn, df, request));
     // prints to system.out its self.
+  }
+
+  public boolean close() {
+    try {
+      conn.close();
+      return true;
+    } catch (Exception ex) {
+      System.err.println(ex);
+      System.err.println(ex.getMessage());
+      return false;
+    }
   }
 }

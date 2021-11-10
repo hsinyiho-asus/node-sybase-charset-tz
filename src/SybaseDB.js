@@ -3,15 +3,8 @@ var JSONStream = require('JSONStream');
 var fs = require("fs");
 var path = require("path");
 
-function Sybase(host, port, dbname, username, password, charset, timezone, logTiming, pathToJavaBridge, { encoding = "utf8", extraLogs = false } = {}) {
+function Sybase(logTiming, pathToJavaBridge, { encoding = "utf8", extraLogs = false } = {}) {
     this.connected = false;
-    this.host = host;
-    this.port = port;
-    this.dbname = dbname;
-    this.username = username;
-    this.password = password;
-    this.charset = charset;
-    this.timezone = timezone;
     this.logTiming = (logTiming == true);
     this.encoding = encoding;
     this.extraLogs = extraLogs;
@@ -25,6 +18,12 @@ function Sybase(host, port, dbname, username, password, charset, timezone, logTi
     this.currentMessages = {}; // look up msgId to message sent and call back details.
 
     this.jsonParser = JSONStream.parse();
+
+    this.javaDB = spawn('java', ["-jar", this.pathToJavaBridge]);
+    var that = this;
+    // set up normal listeners.
+    that.javaDB.stdout.setEncoding(that.encoding).pipe(that.jsonParser).on("data", function (jsonMsg) { that.onSQLResponse.call(that, jsonMsg); });
+    that.javaDB.stderr.on("data", function (err) { that.onSQLError.call(that, err); });
 }
 
 Sybase.prototype.log = function (msg) {
@@ -33,38 +32,50 @@ Sybase.prototype.log = function (msg) {
     }
 }
 
-Sybase.prototype.connect = function (callback) {
-    var that = this;
-    this.javaDB = spawn('java', ["-jar", this.pathToJavaBridge, this.host, this.port, this.dbname, this.username, this.password, this.charset, this.timezone]);
-
+Sybase.prototype.connect = function (host, port, dbname, username, password, charset, timezone, callback) {
     var hrstart = process.hrtime();
-    this.javaDB.stdout.once("data", function (data) {
-        // console.log(data);
-        if ((data + "").trim() != "connected") {
-            callback(new Error("Error connecting " + data));
-            return;
-        }
+    this.queryCount++;
+    var msg = {};
+    msg.type = "connect";
+    msg.msgId = this.queryCount;
+    msg.host = host;
+    msg.port = port;
+    msg.dbname = dbname;
+    msg.username = username;
+    msg.password = password;
+    msg.charset = charset;
+    msg.timezone = timezone;
+    msg.sentTime = (new Date()).getTime();
+    var strMsg = JSON.stringify(msg).replace(/[\n]/g, '\\n');
+    msg.callback = callback;
+    msg.hrstart = hrstart;
 
-        that.javaDB.stderr.removeAllListeners("data");
-        that.connected = true;
+    this.log("this: " + this + " currentMessages: " + this.currentMessages + " this.queryCount: " + this.queryCount);
 
-        // set up normal listeners.
-        that.javaDB.stdout.setEncoding(that.encoding).pipe(that.jsonParser).on("data", function (jsonMsg) { that.onSQLResponse.call(that, jsonMsg); });
-        that.javaDB.stderr.on("data", function (err) { that.onSQLError.call(that, err); });
+    this.currentMessages[msg.msgId] = msg;
 
-        callback(null, data);
-    });
-
-    // handle connection issues.
-    this.javaDB.stderr.once("data", function (data) {
-        that.javaDB.stdout.removeAllListeners("data");
-        that.javaDB.kill();
-        callback(new Error(data));
-    });
+    this.javaDB.stdin.write(strMsg + "\n");
+    this.log("sql request written: " + strMsg);
+    this.connected = true;
 };
 
-Sybase.prototype.disconnect = function () {
-    this.javaDB.kill();
+Sybase.prototype.close = function (callback) {
+    var hrstart = process.hrtime();
+    this.queryCount++;
+    var msg = {};
+    msg.type = "close";
+    msg.msgId = this.queryCount;
+    msg.sentTime = (new Date()).getTime();
+    var strMsg = JSON.stringify(msg).replace(/[\n]/g, '\\n');
+    msg.callback = callback;
+    msg.hrstart = hrstart;
+
+    this.log("this: " + this + " currentMessages: " + this.currentMessages + " this.queryCount: " + this.queryCount);
+
+    this.currentMessages[msg.msgId] = msg;
+
+    this.javaDB.stdin.write(strMsg + "\n");
+    this.log("sql request written: " + strMsg);
     this.connected = false;
 }
 
@@ -79,8 +90,8 @@ Sybase.prototype.query = function (sql, callback) {
     }
     var hrstart = process.hrtime();
     this.queryCount++;
-
     var msg = {};
+    msg.type = "query";
     msg.msgId = this.queryCount;
     msg.sql = sql;
     msg.sentTime = (new Date()).getTime();
