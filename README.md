@@ -50,17 +50,19 @@ db.connect(
   'password',
   'charset',
   'timezone',
-  function (err) {
+  function (dbId, err) {
   if (err) return console.log(err);
 
   console.log("Connected.");
 
-  db.query('select * from user where user_id = 42', function (err, data) {
+  db.query(dbId, 'select * from user where user_id = 42', function (dbId, err, result) {
     if (err) console.log(err);
     
-    console.log(data);
+    console.log(result);
 
-    db.close(function () {
+    db.close(dbId, function (dbId, err) {
+      if (err) console.log(err);
+
       console.log("Connection closed.");
     });
   });

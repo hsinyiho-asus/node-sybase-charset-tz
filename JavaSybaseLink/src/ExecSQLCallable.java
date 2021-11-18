@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -38,6 +39,7 @@ public class ExecSQLCallable implements Callable<String> {
   public String execSQLJsonSimple() {
     JSONObject response = new JSONObject();
     response.put("msgId", request.msgId);
+    response.put("dbId", request.dbId);
     JSONArray rss = new JSONArray();
     response.put("result", rss);
 
@@ -75,10 +77,15 @@ public class ExecSQLCallable implements Callable<String> {
             switch (dataType) {
               case SybaseDB.TYPE_TIME_STAMP:
               case SybaseDB.TYPE_DATE:
-                String my8601formattedDate = df.format(
-                  new Date(rs.getTimestamp(c).getTime())
-                );
-                row.put(columns[c], my8601formattedDate);
+                Timestamp sqlTimestamp = rs.getTimestamp(c);
+                if (sqlTimestamp != null) {
+                  String my8601formattedDate = df.format(
+                    new Date(rs.getTimestamp(c).getTime())
+                  );
+                  row.put(columns[c], my8601formattedDate);
+                } else {
+                  row.put(columns[c], null);
+                }
                 break;
               default:
                 row.put(columns[c], rs.getObject(c));
@@ -92,6 +99,7 @@ public class ExecSQLCallable implements Callable<String> {
       }
       stmt.close();
     } catch (Exception ex) {
+      ex.printStackTrace(System.err);
       response.put("error", ex.getMessage());
     }
 
@@ -100,7 +108,7 @@ public class ExecSQLCallable implements Callable<String> {
     response.put("javaEndTime", beforeParse);
 
     String jsonResult = response.toJSONString();
-    //System.err.println("parse time: " + (System.currentTimeMillis() - beforeParse));
+    //System.out.println("parse time: " + (System.currentTimeMillis() - beforeParse));
     return jsonResult;
   }
 

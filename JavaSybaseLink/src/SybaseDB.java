@@ -100,8 +100,7 @@ public class SybaseDB {
         );
       return true;
     } catch (Exception ex) {
-      System.err.println(ex);
-      System.err.println(ex.getMessage());
+      ex.printStackTrace(System.err);
       return false;
     }
   }
@@ -116,8 +115,7 @@ public class SybaseDB {
       conn.close();
       return true;
     } catch (Exception ex) {
-      System.err.println(ex);
-      System.err.println(ex.getMessage());
+      ex.printStackTrace(System.err);
       return false;
     }
   }

@@ -49,16 +49,19 @@ public class StdInputReader {
         request.javaStartTime = startTime;
         for (SQLRequestListener l : listeners) l.connect(request);
       } else if (type.equals("close")) {
-        for (SQLRequestListener l : listeners) l.close((int) val.get("msgId"));
+        CloseRequest request = new CloseRequest();
+        request.msgId = (int) val.get("msgId");
+        request.dbId = (int) val.get("dbId");
+        for (SQLRequestListener l : listeners) l.close(request);
       } else {
         SQLRequest request = new SQLRequest();
         request.msgId = (int) val.get("msgId");
+        request.dbId = (int) val.get("dbId");
         request.sql = (String) val.get("sql");
         request.javaStartTime = startTime;
         for (SQLRequestListener l : listeners) l.sqlRequest(request);
       }
     } catch (Exception e) {
-      System.err.println(e);
       e.printStackTrace(System.err);
       System.err.println("Error parsing json not a valid SQLRequest object.");
     }

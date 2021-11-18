@@ -5,12 +5,15 @@
  * Then on standard out send
  * { "msgId" : 1, "rows" : [{},{}]}  back on standard out where the msgId matches the sent message.
  */
+import java.util.LinkedHashMap;
+import java.util.Map;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
 public class Main implements SQLRequestListener {
 
-  SybaseDB db;
+  Map dbMap = new LinkedHashMap();
+  int connectCount = 0;
   StdInputReader input;
 
   public static void main(String[] args) {
@@ -28,27 +31,25 @@ public class Main implements SQLRequestListener {
   public void connect(ConnectRequest request) {
     JSONObject response = new JSONObject();
     response.put("msgId", request.msgId);
-    if (db != null) {
-      response.put("result", "previous connection not closed");
-    } else {
-      MyProperties props = new MyProperties("sybaseConfig.properties");
-      db =
-        new SybaseDB(
-          request.host,
-          request.port,
-          request.dbname,
-          request.username,
-          request.password,
-          request.charset,
-          request.timezone,
-          props.properties
-        );
+    MyProperties props = new MyProperties("sybaseConfig.properties");
+    SybaseDB db = new SybaseDB(
+      request.host,
+      request.port,
+      request.dbname,
+      request.username,
+      request.password,
+      request.charset,
+      request.timezone,
+      props.properties
+    );
 
-      if (!db.connect()) {
-        response.put("result", "connect failed");
-      } else {
-        response.put("result", "connected");
-      }
+    if (!db.connect()) {
+      response.put("error", "connect failed");
+    } else {
+      connectCount++;
+      dbMap.put(connectCount, db);
+      response.put("result", "connected");
+      response.put("dbId", connectCount);
     }
     response.put("javaStartTime", request.javaStartTime);
     long beforeParse = System.currentTimeMillis();
@@ -58,14 +59,18 @@ public class Main implements SQLRequestListener {
   }
 
   public void sqlRequest(SQLRequest request) {
+    SybaseDB db = (SybaseDB) dbMap.get(request.dbId);
     db.execSQL(request);
     //System.out.println(result);
   }
 
-  public void close(int msgId) {
+  public void close(CloseRequest request) {
+    SybaseDB db = (SybaseDB) dbMap.get(request.dbId);
     db.close();
+    dbMap.remove(request.dbId);
     JSONObject response = new JSONObject();
-    response.put("msgId", msgId);
+    response.put("msgId", request.msgId);
+    response.put("dbId", request.dbId);
     response.put("result", "closed");
     System.out.println(response.toJSONString());
     db = null;

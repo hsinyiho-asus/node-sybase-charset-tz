@@ -3,8 +3,10 @@
  * @author rod
  */
 public class SQLRequest {
-	int msgId;
-	String sql;
-	long sentTime;
-	long javaStartTime;
+
+  int msgId;
+  int dbId;
+  String sql;
+  long sentTime;
+  long javaStartTime;
 }
