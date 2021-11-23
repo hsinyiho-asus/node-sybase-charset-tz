@@ -24,7 +24,7 @@ function Sybase(logTiming, pathToJavaBridge, { encoding = "utf8", extraLogs = fa
     var that = this;
     // set up normal listeners.
     that.javaDB.stdout.setEncoding(that.encoding).pipe(that.jsonParser).on("data", function (jsonMsg) { that.onResponse.call(that, jsonMsg); });
-    that.javaDB.stderr.on("data", function (err) { that.onSQLError.call(that, err); });
+    that.javaDB.stderr.setEncoding(that.encoding).on("data", function (err) { that.onSQLError.call(that, err); });
 }
 
 Sybase.prototype.log = function (msg) {
@@ -98,7 +98,7 @@ Sybase.prototype.query = function (dbId, sql, callback) {
 };
 
 Sybase.prototype.onResponse = function (jsonMsg) {
-    var err = null;
+    var err = jsonMsg.error;
     var request = this.currentMessages[jsonMsg.msgId];
     delete this.currentMessages[jsonMsg.msgId];
 
@@ -112,29 +112,29 @@ Sybase.prototype.onResponse = function (jsonMsg) {
     var hrend = process.hrtime(request.hrstart);
     var javaDuration = (jsonMsg.javaEndTime - jsonMsg.javaStartTime);
 
-    if (jsonMsg.error !== undefined)
-        err = new Error(jsonMsg.error);
-
     if (this.logTiming)
         console.log("Execution time (hr): %ds %dms dbTime: %dms dbSendTime: %d sql=%s", hrend[0], hrend[1] / 1000000, javaDuration, sendTimeMS, request.sql);
     request.callback(jsonMsg.dbId, err, result);
 };
 
 Sybase.prototype.onSQLError = function (data) {
-    var error = new Error(data);
-
-    var callBackFunctions = [];
-    for (var k in this.currentMessages) {
-        if (this.currentMessages.hasOwnProperty(k)) {
-            callBackFunctions.push(this.currentMessages[k].callback);
-        }
+    if (this.extraLogs) {
+        console.log(data);
     }
+    // var error = new Error(data);
 
-    // clear the current messages before calling back with the error.
-    this.currentMessages = [];
-    callBackFunctions.forEach(function (cb) {
-        cb(error);
-    });
+    // var callBackFunctions = [];
+    // for (var k in this.currentMessages) {
+    //     if (this.currentMessages.hasOwnProperty(k)) {
+    //         callBackFunctions.push(this.currentMessages[k].callback);
+    //     }
+    // }
+
+    // // clear the current messages before calling back with the error.
+    // this.currentMessages = [];
+    // callBackFunctions.forEach(function (cb) {
+    //     cb(error);
+    // });
 };
 
 module.exports = Sybase;
