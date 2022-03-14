@@ -4,6 +4,7 @@ var spawn = require('child_process').spawn;
 var JSONStream = require('JSONStream');
 var fs = require("fs");
 var path = require("path");
+var lastDbId = 0;
 
 function Sybase(logTiming, pathToJavaBridge, { encoding = "utf8", extraLogs = false } = {}) {
     this.logTiming = (logTiming == true);
@@ -97,6 +98,16 @@ Sybase.prototype.query = function (dbId, sql, callback) {
     this.log("sql request written: " + strMsg);
 };
 
+Sybase.prototype.getLastDbId = function () {
+    return this.lastDbId;
+}
+
+Sybase.prototype.kill = function () {
+    if (this.javaDB.kill) {
+        this.javaDB.kill();
+    }
+}
+
 Sybase.prototype.onResponse = function (jsonMsg) {
     var err = jsonMsg.error;
     var request = this.currentMessages[jsonMsg.msgId];
@@ -114,6 +125,7 @@ Sybase.prototype.onResponse = function (jsonMsg) {
 
     if (this.logTiming)
         console.log("Execution time (hr): %ds %dms dbTime: %dms dbSendTime: %d sql=%s", hrend[0], hrend[1] / 1000000, javaDuration, sendTimeMS, request.sql);
+    this.lastDbId = jsonMsg.dbId;
     request.callback(jsonMsg.dbId, err, result);
 };
 
