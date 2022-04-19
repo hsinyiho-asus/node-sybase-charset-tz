@@ -94,7 +94,7 @@ Sybase.prototype.query = function (dbId, sql, callback) {
 
     this.currentMessages[msg.msgId] = msg;
 
-    this.javaDB.stdin.write(strMsg + "\n");
+    this.javaDB.stdin.write(strMsg + "\n", this.encoding);
     this.log("sql request written: " + strMsg);
 };
 
